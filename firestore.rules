@@ -1,0 +1,116 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // -------------------------------------------------------------------------
+    // H E L P E R S
+    // -------------------------------------------------------------------------
+    
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidUser(data) {
+      return data.displayName is string && data.displayName.size() <= 100
+          && data.email is string && data.email.size() <= 200
+          && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 1000))
+          && data.totalHours is number
+          && data.totalQuestions is number
+          && data.totalSessions is number
+          && data.streak is number
+          && data.score is number
+          && data.isPremium is bool
+          && data.rank is string
+          && data.lastActive is timestamp
+          && data.createdAt is timestamp;
+    }
+
+    function isValidTask(data) {
+      return data.userId == request.auth.uid
+          && data.title is string && data.title.size() <= 200
+          && data.status in ['todo', 'in_progress', 'done']
+          && data.priority in ['low', 'medium', 'high', 'critical']
+          && data.createdAt is timestamp;
+    }
+
+    function isValidSession(data) {
+      return data.userId == request.auth.uid
+          && data.type is string
+          && data.duration is number
+          && data.startTime is timestamp
+          && data.completed is bool;
+    }
+
+    function isValidExamGoal(data) {
+      return data.userId == request.auth.uid
+          && data.title is string && data.title.size() <= 200
+          && data.targetDate is timestamp;
+    }
+
+    function isValidPersonalResource(data) {
+      return data.title is string && data.title.size() <= 200
+          && data.author is string
+          && data.subject is string
+          && data.url is string;
+    }
+
+    // -------------------------------------------------------------------------
+    // R U L E S
+    // -------------------------------------------------------------------------
+
+    // Default Deny
+    match /{document=**} { allow read, write: if false; }
+
+    // Users Collection
+    match /users/{userId} {
+      // Global read for leaderboard
+      allow get, list: if isSignedIn();
+      
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().score == 0;
+      
+      allow update: if isOwner(userId) && (
+        // Action: Stats Update
+        (isValidUser(incoming())) ||
+        // Action: Partial Update (like incrementing totalQuestions or upgrading premium)
+        (incoming().diff(existing()).affectedKeys().hasAny(['totalQuestions', 'totalHours', 'score', 'totalSessions', 'lastActive', 'isPremium', 'streak', 'rank']))
+      );
+
+      // Subcollections
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidTask(incoming());
+        allow update: if isOwner(userId) && isValidTask(incoming());
+        allow delete: if isOwner(userId);
+      }
+      
+      match /sessions/{sessionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidSession(incoming());
+        allow update: if isOwner(userId) && isValidSession(incoming());
+        allow delete: if isOwner(userId);
+      }
+      
+      match /examGoals/{goalId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidExamGoal(incoming());
+        allow update: if isOwner(userId) && isValidExamGoal(incoming());
+        allow delete: if isOwner(userId);
+      }
+
+      match /resources/{resourceId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidPersonalResource(incoming());
+        allow update: if isOwner(userId) && isValidPersonalResource(incoming());
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Global curated resources
+    match /resources/{resourceId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+  }
+}

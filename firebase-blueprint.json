@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Main user statistics and profile details",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "totalHours": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "totalSessions": { "type": "number" },
+        "streak": { "type": "number" },
+        "score": { "type": "number" },
+        "rank": { "type": "string" },
+        "isPremium": { "type": "boolean" },
+        "lastActive": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["displayName", "email", "totalHours", "totalQuestions", "score", "isPremium"]
+    },
+    "Task": {
+      "title": "User Task",
+      "description": "A specific learning task defined by the user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "subject": { "type": "string" },
+        "duration": { "type": "number" },
+        "questions": { "type": "number" },
+        "status": { "type": "string", "enum": ["todo", "in_progress", "done"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "status", "priority", "createdAt"]
+    },
+    "Session": {
+      "title": "Focus Session",
+      "description": "A timed study session record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "duration": { "type": "number" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "completed": { "type": "boolean" }
+      },
+      "required": ["userId", "type", "duration", "startTime", "completed"]
+    },
+    "ExamGoal": {
+      "title": "Exam Goal",
+      "description": "User set examination target",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "targetDate": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "subjects": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["userId", "title", "targetDate"]
+    },
+    "Resource": {
+      "title": "Educational Resource",
+      "description": "Curated study materials",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "subject": { "type": "string" },
+        "level": { "type": "string" },
+        "rating": { "type": "number" },
+        "url": { "type": "string" },
+        "isPremium": { "type": "boolean" }
+      },
+      "required": ["title", "subject", "url"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Tasks belonging to a specific user"
+    },
+    "/users/{userId}/resources/{resourceId}": {
+      "schema": "Resource",
+      "description": "Personal document library for a user"
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "History of focus sessions for a user"
+    },
+    "/users/{userId}/examGoals/{goalId}": {
+      "schema": "ExamGoal",
+      "description": "Exam goals for a user"
+    },
+    "/resources/{resourceId}": {
+      "schema": "Resource",
+      "description": "Global curated resources"
+    }
+  }
+}
